@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_DIR = "/opt/apps/test/flask"
+    }
+
+    stages {
+
+        stage('Sync Code from GitHub') {
+            steps {
+                sh '''
+                cd /opt/apps/test/flask
+                git fetch origin
+                git reset --hard origin/main
+                '''
+            }
+        }
+
+        stage('Setup Virtual Environment & Install Dependencies') {
+            steps {
+                sh '''
+                bash -c "
+                cd /opt/apps/test/flask &&
+
+                if [ ! -d venv ]; then
+                    python3 -m venv venv
+                fi &&
+
+                source venv/bin/activate &&
+                pip install --upgrade pip &&
+                pip install -r requirements.txt
+                "
+                '''
+            }
+        }
+
+        stage('Restart Flask App') {
+            steps {
+                sh '''
+                pm2 restart flask-backend || \
+                pm2 start "venv/bin/python app.py" --name flask-backend
+                pm2 save
+                '''
+            }
+        }
+    }
+}
+

@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_DIR = "/opt/apps/test/node"
+    }
+
+    stages {
+
+        stage('Sync Code from GitHub') {
+            steps {
+                sh '''
+                cd /opt/apps/test/node
+                git fetch origin
+                git reset --hard origin/main
+                '''
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                cd /opt/apps/test/node
+                if [ -f package-lock.json ]; then
+                    npm ci
+                else
+                    npm install
+                fi
+                '''
+            }
+        }
+
+        stage('Restart Express App') {
+            steps {
+                sh '''
+                cd /opt/apps/test/node
+                pm2 restart express-frontend || pm2 start server.js --name express-frontend
+                pm2 save
+                '''
+            }
+        }
+
+    }
+}
+
